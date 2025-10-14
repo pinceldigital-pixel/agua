@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Water Tracker</title>
+    <meta name="theme-color" content="#1a1a2e"/>
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;600;700&display=swap');
+
+        :root {
+            --background-color: #12121c;
+            --container-color: #1a1a2e;
+            --primary-text-color: #ffffff;
+            --secondary-text-color: #a0a0b0;
+            --water-color: #3498db;
+            --accent-color: #4a90e2;
+            --accent-color-hover: #5aa1f2;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--primary-text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+        }
+        .background-bubbles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; }
+        .bubble { position: absolute; bottom: -100px; width: 40px; height: 40px; background: rgba(74, 144, 226, 0.15); border-radius: 50%; animation: rise 15s infinite ease-in; }
+        @keyframes rise { 0% { transform: translateY(0) translateX(0); opacity: 1; } 50% { transform: translateX(100px); } 100% { transform: translateY(-1080px) translateX(-100px); opacity: 0; } }
+        .bubble:nth-child(1) { left: 10%; animation-duration: 12s; }
+        .bubble:nth-child(2) { left: 20%; animation-duration: 15s; animation-delay: 1s; width: 20px; height: 20px; }
+        .bubble:nth-child(3) { left: 25%; animation-duration: 10s; animation-delay: 2s; }
+        .bubble:nth-child(4) { left: 40%; animation-duration: 18s; animation-delay: 0s; width: 60px; height: 60px; }
+        .bubble:nth-child(5) { left: 50%; animation-duration: 11s; animation-delay: 1s; }
+        .bubble:nth-child(6) { left: 65%; animation-duration: 16s; animation-delay: 3s; width: 30px; height: 30px; }
+        .bubble:nth-child(7) { left: 75%; animation-duration: 9s; animation-delay: 2.5s; }
+        .bubble:nth-child(8) { left: 85%; animation-duration: 14s; animation-delay: 4s; width: 25px; height: 25px; }
+        .bubble:nth-child(9) { left: 55%; animation-duration: 13s; animation-delay: 0.5s;}
+        .bubble:nth-child(10) { left: 90%; animation-duration: 17s; animation-delay: 5s; }
+
+        .container { width: 100%; max-width: 400px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; max-height: 800px; position: relative; z-index: 1; }
+        header h1 { font-size: 1.5rem; color: var(--secondary-text-color); margin-bottom: .5rem; }
+        .progress-bar-container { width: 100%; height: 4px; background-color: rgba(255,255,255,0.1); border-radius: 2px; margin: 0 auto 2rem; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background-color: var(--water-color); border-radius: 2px; transition: width .5s ease-in-out; }
+        .water-tracker { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .percentage-display { margin-bottom: 3rem; position: relative; }
+        .percentage { font-size: 9rem; font-weight: 200; line-height: 1; color: var(--primary-text-color); transition: color .5s ease-in-out; }
+        .details { font-size: 1.2rem; color: var(--secondary-text-color); margin-top: .5rem; letter-spacing: 1px; }
+        .controls { display: flex; justify-content: center; gap: 1rem; }
+        .control-btn { background-color: var(--accent-color); color: #fff; border: none; border-radius: 12px; padding: 1rem 1.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color .3s ease, transform .2s ease; box-shadow: 0 4px 15px rgba(0,0,0,.2); }
+        .control-btn:hover { background-color: var(--accent-color-hover); }
+        .control-btn:active { transform: scale(.95); }
+        .actions { padding: 1rem 0; }
+        .action-btn { background: none; border: 1px solid var(--secondary-text-color); color: var(--secondary-text-color); border-radius: 8px; padding: .5rem 1rem; cursor: pointer; margin: .5rem; transition: background-color .3s ease, color .3s ease, opacity .3s ease; }
+        .action-btn:hover { background-color: var(--secondary-text-color); color: var(--container-color); }
+        .action-btn:disabled { opacity: .4; cursor: not-allowed; background-color: transparent; color: var(--secondary-text-color); }
+        .notification-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #4a4a6a; color: #fff; padding: 1rem; text-align: center; transform: translateY(100%); transition: transform .5s ease-in-out; font-size: .9rem; z-index: 10; }
+        .notification-bar.show { transform: translateY(0); }
+        #confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+        .confetti { position: absolute; width: 10px; height: 10px; background-color: var(--accent-color); opacity: 0; animation: confetti-fall 3s ease-out forwards; }
+        @keyframes confetti-fall { 0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; } 100% { transform: translateY(200px) rotateZ(360deg); opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="background-bubbles">
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+    </div>
+    <div class="container">
+        <header>
+            <h1>Monitor de Agua</h1>
+            <div class="progress-bar-container"><div id="progress-bar"></div></div>
+        </header>
+
+        <main class="water-tracker">
+            <div class="percentage-display">
+                <div id="confetti-container"></div>
+                <div id="percentage" class="percentage">0%</div>
+                <div id="details" class="details">0 / 2000 ml</div>
+            </div>
+            <div class="controls">
+                <button class="control-btn" data-amount="250">+ 250 ml</button>
+                <button class="control-btn" data-amount="500">+ 500 ml</button>
+            </div>
+        </main>
+        <footer class="actions">
+            <button id="undo-btn" class="action-btn">Deshacer</button>
+            <button id="reset-btn" class="action-btn">Reiniciar Día</button>
+            <button id="notify-btn" class="action-btn">Activar Avisos</button>
+        </footer>
+    </div>
+    <div id="notification-bar" class="notification-bar"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(console.error); });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const percentageEl = document.getElementById('percentage');
+            const detailsEl = document.getElementById('details');
+            const progressBar = document.getElementById('progress-bar');
+            const addButtons = document.querySelectorAll('.control-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            const notifyBtn = document.getElementById('notify-btn');
+            const notificationBar = document.getElementById('notification-bar');
+            const confettiContainer = document.getElementById('confetti-container');
+
+            const GOAL = 2000;
+            let currentIntake = 0;
+            let lastAddedAmount = 0;
+            let notificationInterval = null;
+            let goalReachedToday = false;
+
+            const animatePercentage = (from, to) => {
+                const duration = 500, start = performance.now();
+                requestAnimationFrame(function step(time) {
+                    let t = (time - start) / duration; if (t > 1) t = 1;
+                    const val = from + (to - from) * t;
+                    percentageEl.textContent = `${Math.round(val)}%`;
+                    if (t < 1) requestAnimationFrame(step);
+                });
+            };
+
+            const triggerConfetti = () => {
+                for (let i = 0; i < 30; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.animationDelay = `${Math.random() * 2}s`;
+                    const colors = ['#4a90e2', '#3498db', '#ffffff', '#a0a0b0'];
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.transform = `scale(${Math.random() * 0.8 + 0.5})`;
+                    confettiContainer.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 3000);
+                }
+            };
+
+            const updateUI = (fromPercentage = -1) => {
+                const percentage = Math.min(100, (currentIntake / GOAL) * 100);
+                if (fromPercentage !== -1) animatePercentage(fromPercentage, percentage);
+                else percentageEl.textContent = `${Math.round(percentage)}%`;
+                detailsEl.textContent = `${currentIntake} / ${GOAL} ml`;
+                progressBar.style.width = `${percentage}%`;
+                undoBtn.disabled = lastAddedAmount === 0;
+                if (percentage >= 100) {
+                    percentageEl.style.color = 'var(--water-color)';
+                    if (!goalReachedToday) { triggerConfetti(); goalReachedToday = true; }
+                } else {
+                    percentageEl.style.color = 'var(--primary-text-color)';
+                    goalReachedToday = false;
+                }
+            };
+
+            const saveData = () => {
+                const today = new Date().toLocaleDateString();
+                localStorage.setItem('waterTrackerData', JSON.stringify({ intake: currentIntake, date: today, goalReached: goalReachedToday }));
+            };
+
+            const loadData = () => {
+                const data = JSON.parse(localStorage.getItem('waterTrackerData'));
+                const today = new Date().toLocaleDateString();
+                if (data && data.date === today) { currentIntake = data.intake; goalReachedToday = data.goalReached || false; }
+                else { currentIntake = 0; goalReachedToday = false; }
+                lastAddedAmount = 0; updateUI();
+            };
+
+            addButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const fromPercentage = (currentIntake / GOAL) * 100;
+                    const amount = parseInt(button.dataset.amount, 10);
+                    if (currentIntake < GOAL) { lastAddedAmount = amount; currentIntake += amount; }
+                    else { lastAddedAmount = 0; }
+                    if (currentIntake > GOAL) currentIntake = GOAL;
+                    updateUI(fromPercentage); saveData();
+                });
+            });
+
+            undoBtn.addEventListener('click', () => {
+                if (lastAddedAmount > 0) {
+                    const fromPercentage = (currentIntake / GOAL) * 100;
+                    currentIntake -= lastAddedAmount; if (currentIntake < 0) currentIntake = 0;
+                    lastAddedAmount = 0; updateUI(fromPercentage); saveData();
+                    showNotificationBar('Última adición deshecha.');
+                }
+            });
+
+            resetBtn.addEventListener('click', () => {
+                const fromPercentage = (currentIntake / GOAL) * 100;
+                currentIntake = 0; lastAddedAmount = 0; goalReachedToday = false;
+                updateUI(fromPercentage); saveData(); showNotificationBar('Progreso del día reiniciado.');
+            });
+
+            const showNotificationBar = (message, duration = 3000) => {
+                notificationBar.textContent = message;
+                notificationBar.classList.add('show');
+                setTimeout(() => notificationBar.classList.remove('show'), duration);
+            };
+
+            const scheduleNotifications = () => {
+                if (notificationInterval) clearInterval(notificationInterval);
+                notificationInterval = setInterval(() => {
+                    const now = new Date(); const hour = now.getHours();
+                    const lastHour = parseInt(localStorage.getItem('lastNotificationHour') || '-1', 10);
+                    if (hour >= 9 && hour <= 20 && hour !== lastHour) {
+                        if (currentIntake < GOAL) {
+                            new Notification('¡Recordatorio de Hidratación!', {
+                                body: '💧 ¡Hey! Es hora de tomar agua.',
+                                icon: 'icon-192.png',
+                                silent: false
+                            });
+                            localStorage.setItem('lastNotificationHour', String(hour));
+                        } else { clearInterval(notificationInterval); notificationInterval = null; }
+                    }
+                }, 60 * 1000);
+            };
+
+            // Toggle notifications with persistence
+            const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+            notifyBtn.textContent = enabled ? 'Desactivar Avisos' : 'Activar Avisos';
+
+            notifyBtn.addEventListener('click', () => {
+                const isEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+                if (!isEnabled) {
+                    if (!('Notification' in window)) { showNotificationBar('Tu navegador no soporta notificaciones.'); return; }
+                    if (Notification.permission === 'granted') {
+                        localStorage.setItem('notificationsEnabled', 'true'); scheduleNotifications(); showNotificationBar('¡Notificaciones activadas!'); notifyBtn.textContent='Desactivar Avisos';
+                    } else if (Notification.permission !== 'denied') {
+                        Notification.requestPermission().then(p => {
+                            if (p === 'granted') { localStorage.setItem('notificationsEnabled', 'true'); scheduleNotifications(); showNotificationBar('¡Notificaciones activadas!'); notifyBtn.textContent='Desactivar Avisos'; }
+                            else showNotificationBar('Permiso de notificaciones denegado.');
+                        });
+                    } else showNotificationBar('Las notificaciones están bloqueadas.');
+                } else {
+                    localStorage.setItem('notificationsEnabled', 'false');
+                    if (notificationInterval) clearInterval(notificationInterval);
+                    notificationInterval = null; notifyBtn.textContent='Activar Avisos';
+                    showNotificationBar('Notificaciones desactivadas.');
+                }
+            });
+
+            loadData();
+            if (enabled && Notification.permission === 'granted') scheduleNotifications();
+        });
+    </script>
+</body>
+</html>
