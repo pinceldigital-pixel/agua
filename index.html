@@ -6,7 +6,6 @@
     <title>Water Tracker</title>
     <meta name="theme-color" content="#1a1a2e"/>
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="manifest" href="manifest.webmanifest">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;600;700&display=swap');
@@ -21,7 +20,12 @@
             --accent-color-hover: #5aa1f2;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--background-color);
@@ -31,11 +35,45 @@
             align-items: center;
             min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
+            overflow: hidden; /* Prevent scrollbars from animations */
+        }
+        
+        /* --- New Bubbles Background Effect --- */
+        .background-bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
             overflow: hidden;
         }
-        .background-bubbles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; }
-        .bubble { position: absolute; bottom: -100px; width: 40px; height: 40px; background: rgba(74, 144, 226, 0.15); border-radius: 50%; animation: rise 15s infinite ease-in; }
-        @keyframes rise { 0% { transform: translateY(0) translateX(0); opacity: 1; } 50% { transform: translateX(100px); } 100% { transform: translateY(-1080px) translateX(-100px); opacity: 0; } }
+
+        .bubble {
+            position: absolute;
+            bottom: -100px;
+            width: 40px;
+            height: 40px;
+            background: rgba(74, 144, 226, 0.3);
+            border-radius: 50%;
+            animation: rise 15s infinite ease-in;
+            box-shadow: 0 0 8px rgba(74, 144, 226, 0.4);
+        }
+        
+        @keyframes rise {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(100px);
+            }
+            100% {
+                transform: translateY(-1080px) translateX(-100px);
+                opacity: 0;
+            }
+        }
+
         .bubble:nth-child(1) { left: 10%; animation-duration: 12s; }
         .bubble:nth-child(2) { left: 20%; animation-duration: 15s; animation-delay: 1s; width: 20px; height: 20px; }
         .bubble:nth-child(3) { left: 25%; animation-duration: 10s; animation-delay: 2s; }
@@ -47,38 +85,197 @@
         .bubble:nth-child(9) { left: 55%; animation-duration: 13s; animation-delay: 0.5s;}
         .bubble:nth-child(10) { left: 90%; animation-duration: 17s; animation-delay: 5s; }
 
-        .container { width: 100%; max-width: 400px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; max-height: 800px; position: relative; z-index: 1; }
-        header h1 { font-size: 1.5rem; color: var(--secondary-text-color); margin-bottom: .5rem; }
-        .progress-bar-container { width: 100%; height: 4px; background-color: rgba(255,255,255,0.1); border-radius: 2px; margin: 0 auto 2rem; overflow: hidden; }
-        #progress-bar { width: 0%; height: 100%; background-color: var(--water-color); border-radius: 2px; transition: width .5s ease-in-out; }
-        .water-tracker { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .percentage-display { margin-bottom: 3rem; position: relative; }
-        .percentage { font-size: 9rem; font-weight: 200; line-height: 1; color: var(--primary-text-color); transition: color .5s ease-in-out; }
-        .details { font-size: 1.2rem; color: var(--secondary-text-color); margin-top: .5rem; letter-spacing: 1px; }
-        .controls { display: flex; justify-content: center; gap: 1rem; }
-        .control-btn { background-color: var(--accent-color); color: #fff; border: none; border-radius: 12px; padding: 1rem 1.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: background-color .3s ease, transform .2s ease; box-shadow: 0 4px 15px rgba(0,0,0,.2); }
-        .control-btn:hover { background-color: var(--accent-color-hover); }
-        .control-btn:active { transform: scale(.95); }
-        .actions { padding: 1rem 0; }
-        .action-btn { background: none; border: 1px solid var(--secondary-text-color); color: var(--secondary-text-color); border-radius: 8px; padding: .5rem 1rem; cursor: pointer; margin: .5rem; transition: background-color .3s ease, color .3s ease, opacity .3s ease; }
-        .action-btn:hover { background-color: var(--secondary-text-color); color: var(--container-color); }
-        .action-btn:disabled { opacity: .4; cursor: not-allowed; background-color: transparent; color: var(--secondary-text-color); }
-        .notification-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: #4a4a6a; color: #fff; padding: 1rem; text-align: center; transform: translateY(100%); transition: transform .5s ease-in-out; font-size: .9rem; z-index: 10; }
-        .notification-bar.show { transform: translateY(0); }
-        #confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
-        .confetti { position: absolute; width: 10px; height: 10px; background-color: var(--accent-color); opacity: 0; animation: confetti-fall 3s ease-out forwards; }
-        @keyframes confetti-fall { 0% { transform: translateY(-100px) rotateZ(0deg); opacity: 1; } 100% { transform: translateY(200px) rotateZ(360deg); opacity: 0; } }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100vh; /* Full height for mobile */
+            max-height: 800px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--secondary-text-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            margin: 0 auto 2rem;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--water-color);
+            border-radius: 2px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .water-tracker {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .percentage-display {
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .percentage {
+            font-size: 9rem;
+            font-weight: 200; /* Elegant, thin font */
+            line-height: 1;
+            color: var(--primary-text-color);
+            transition: color 0.5s ease-in-out;
+        }
+
+        .details {
+            font-size: 1.2rem;
+            color: var(--secondary-text-color);
+            margin-top: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .control-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:hover {
+            background-color: var(--accent-color-hover);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .actions {
+            padding: 1rem 0;
+        }
+        
+        .action-btn {
+            background: none;
+            border: 1px solid var(--secondary-text-color);
+            color: var(--secondary-text-color);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: background-color 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background-color: var(--secondary-text-color);
+            color: var(--container-color);
+        }
+        
+        .action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: transparent;
+            color: var(--secondary-text-color);
+        }
+
+        .notification-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #4a4a6a;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            transform: translateY(100%);
+            transition: transform 0.5s ease-in-out;
+            font-size: 0.9rem;
+            z-index: 10;
+        }
+
+        .notification-bar.show {
+            transform: translateY(0);
+        }
+        
+        #confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            opacity: 0;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100px) rotateZ(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(200px) rotateZ(360deg);
+                opacity: 0;
+            }
+        }
+
+
     </style>
 </head>
 <body>
     <div class="background-bubbles">
-        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
-        <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
     </div>
     <div class="container">
         <header>
-            <h1>Monitor de Agua</h1>
-            <div class="progress-bar-container"><div id="progress-bar"></div></div>
+            <h1>A tomar agua !</h1>
+            <div class="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
         </header>
 
         <main class="water-tracker">
@@ -87,25 +284,125 @@
                 <div id="percentage" class="percentage">0%</div>
                 <div id="details" class="details">0 / 2000 ml</div>
             </div>
+
             <div class="controls">
                 <button class="control-btn" data-amount="250">+ 250 ml</button>
                 <button class="control-btn" data-amount="500">+ 500 ml</button>
             </div>
         </main>
+        
         <footer class="actions">
             <button id="undo-btn" class="action-btn">Deshacer</button>
             <button id="reset-btn" class="action-btn">Reiniciar Día</button>
             <button id="notify-btn" class="action-btn">Activar Avisos</button>
         </footer>
     </div>
+    
     <div id="notification-bar" class="notification-bar"></div>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(console.error); });
-        }
 
+    <script>
+        // --- PWA Setup ---
+        const registerPWA = () => {
+             // 1. Service Worker
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'water-tracker-v1';
+                    const urlsToCache = [
+                        '/',
+                        'index.html'
+                    ];
+
+                    self.addEventListener('install', event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME)
+                                .then(cache => cache.addAll(urlsToCache))
+                        );
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        event.respondWith(
+                            caches.match(event.request)
+                                .then(response => {
+                                    return response || fetch(event.request);
+                                })
+                        );
+                    });
+                `;
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(swBlob);
+
+                navigator.serviceWorker.register(swUrl)
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.error('Error al registrar Service Worker', err));
+            }
+
+            // 2. Manifest
+            const manifest = {
+                "name": "Water Tracker PWA",
+                "short_name": "WaterTracker",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#12121c",
+                "theme_color": "#1a1a2e",
+                "description": "Una PWA simple para monitorear tu ingesta de agua diaria.",
+                "icons": [{
+                    "src": "icon-192.png",
+                    "type": "image/png",
+                    "sizes": "192x192"
+                }, {
+                    "src": "icon-512.png",
+                    "type": "image/png",
+                    "sizes": "512x512"
+                }]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestUrl;
+            document.head.appendChild(link);
+
+            // Create placeholder icons (real PWA would have these as files)
+            function createIcon(size) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, size, size);
+
+                // Draw water drop
+                ctx.fillStyle = '#3498db';
+                ctx.beginPath();
+                ctx.moveTo(size * 0.5, size * 0.1);
+                ctx.bezierCurveTo(size * 0.1, size * 0.45, size * 0.5, size * 0.95, size * 0.5, size * 0.95);
+                ctx.bezierCurveTo(size * 0.9, size * 0.45, size * 0.5, size * 0.1, size * 0.5, size * 0.1);
+                ctx.closePath();
+                ctx.fill();
+
+                const iconUrl = canvas.toDataURL();
+                const iconLink = document.createElement('link');
+                iconLink.rel = 'icon';
+                iconLink.href = iconUrl;
+                iconLink.sizes = `${size}x${size}`;
+                document.head.appendChild(iconLink);
+                if (size === 192) {
+                    const appleLink = document.querySelector('link[rel="apple-touch-icon"]');
+                    if (appleLink) appleLink.href = iconUrl;
+                }
+            }
+            createIcon(192);
+            createIcon(512);
+
+        };
+
+        // --- App Logic ---
         document.addEventListener('DOMContentLoaded', () => {
+            registerPWA();
+            
             const percentageEl = document.getElementById('percentage');
             const detailsEl = document.getElementById('details');
             const progressBar = document.getElementById('progress-bar');
@@ -119,19 +416,27 @@
             const GOAL = 2000;
             let currentIntake = 0;
             let lastAddedAmount = 0;
+            let notificationsEnabled = false;
             let notificationInterval = null;
             let goalReachedToday = false;
 
             const animatePercentage = (from, to) => {
-                const duration = 500, start = performance.now();
-                requestAnimationFrame(function step(time) {
-                    let t = (time - start) / duration; if (t > 1) t = 1;
-                    const val = from + (to - from) * t;
-                    percentageEl.textContent = `${Math.round(val)}%`;
-                    if (t < 1) requestAnimationFrame(step);
+                const duration = 500;
+                const start = performance.now();
+                
+                requestAnimationFrame(function animate(time) {
+                    let timeFraction = (time - start) / duration;
+                    if (timeFraction > 1) timeFraction = 1;
+                    
+                    const current = from + (to - from) * timeFraction;
+                    percentageEl.textContent = `${Math.round(current)}%`;
+                    
+                    if (timeFraction < 1) {
+                        requestAnimationFrame(animate);
+                    }
                 });
             };
-
+            
             const triggerConfetti = () => {
                 for (let i = 0; i < 30; i++) {
                     const confetti = document.createElement('div');
@@ -142,115 +447,182 @@
                     confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                     confetti.style.transform = `scale(${Math.random() * 0.8 + 0.5})`;
                     confettiContainer.appendChild(confetti);
-                    setTimeout(() => confetti.remove(), 3000);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
                 }
             };
 
+
             const updateUI = (fromPercentage = -1) => {
                 const percentage = Math.min(100, (currentIntake / GOAL) * 100);
-                if (fromPercentage !== -1) animatePercentage(fromPercentage, percentage);
-                else percentageEl.textContent = `${Math.round(percentage)}%`;
+                
+                if (fromPercentage !== -1) {
+                    animatePercentage(fromPercentage, percentage);
+                } else {
+                    percentageEl.textContent = `${Math.round(percentage)}%`;
+                }
+                
                 detailsEl.textContent = `${currentIntake} / ${GOAL} ml`;
                 progressBar.style.width = `${percentage}%`;
                 undoBtn.disabled = lastAddedAmount === 0;
+                
                 if (percentage >= 100) {
                     percentageEl.style.color = 'var(--water-color)';
-                    if (!goalReachedToday) { triggerConfetti(); goalReachedToday = true; }
+                    if (!goalReachedToday) {
+                        triggerConfetti();
+                        goalReachedToday = true;
+                    }
                 } else {
                     percentageEl.style.color = 'var(--primary-text-color)';
-                    goalReachedToday = false;
+                    goalReachedToday = false; // Reset if user undoes
                 }
             };
 
             const saveData = () => {
                 const today = new Date().toLocaleDateString();
-                localStorage.setItem('waterTrackerData', JSON.stringify({ intake: currentIntake, date: today, goalReached: goalReachedToday }));
+                localStorage.setItem('waterTrackerData', JSON.stringify({
+                    intake: currentIntake,
+                    date: today,
+                    goalReached: goalReachedToday
+                }));
             };
 
             const loadData = () => {
                 const data = JSON.parse(localStorage.getItem('waterTrackerData'));
                 const today = new Date().toLocaleDateString();
-                if (data && data.date === today) { currentIntake = data.intake; goalReachedToday = data.goalReached || false; }
-                else { currentIntake = 0; goalReachedToday = false; }
-                lastAddedAmount = 0; updateUI();
+                if (data && data.date === today) {
+                    currentIntake = data.intake;
+                    goalReachedToday = data.goalReached || false;
+                } else {
+                    currentIntake = 0;
+                    goalReachedToday = false;
+                }
+                lastAddedAmount = 0;
+                updateUI();
             };
 
             addButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const fromPercentage = (currentIntake / GOAL) * 100;
                     const amount = parseInt(button.dataset.amount, 10);
-                    if (currentIntake < GOAL) { lastAddedAmount = amount; currentIntake += amount; }
-                    else { lastAddedAmount = 0; }
-                    if (currentIntake > GOAL) currentIntake = GOAL;
-                    updateUI(fromPercentage); saveData();
+                    
+                    if (currentIntake < GOAL) {
+                       lastAddedAmount = amount;
+                       currentIntake += amount;
+                    } else {
+                       lastAddedAmount = 0; // Don't allow undo if goal already met
+                    }
+
+                    if (currentIntake > GOAL) {
+                       currentIntake = GOAL;
+                    }
+
+                    updateUI(fromPercentage);
+                    saveData();
                 });
             });
 
             undoBtn.addEventListener('click', () => {
-                if (lastAddedAmount > 0) {
+                if(lastAddedAmount > 0) {
                     const fromPercentage = (currentIntake / GOAL) * 100;
-                    currentIntake -= lastAddedAmount; if (currentIntake < 0) currentIntake = 0;
-                    lastAddedAmount = 0; updateUI(fromPercentage); saveData();
+                    currentIntake -= lastAddedAmount;
+                    if(currentIntake < 0) currentIntake = 0;
+                    lastAddedAmount = 0;
+                    updateUI(fromPercentage);
+                    saveData();
                     showNotificationBar('Última adición deshecha.');
                 }
             });
 
             resetBtn.addEventListener('click', () => {
                 const fromPercentage = (currentIntake / GOAL) * 100;
-                currentIntake = 0; lastAddedAmount = 0; goalReachedToday = false;
-                updateUI(fromPercentage); saveData(); showNotificationBar('Progreso del día reiniciado.');
+                currentIntake = 0;
+                lastAddedAmount = 0;
+                goalReachedToday = false;
+                updateUI(fromPercentage);
+                saveData();
+                showNotificationBar('Progreso del día reiniciado.');
             });
 
+            // --- Notifications ---
             const showNotificationBar = (message, duration = 3000) => {
                 notificationBar.textContent = message;
                 notificationBar.classList.add('show');
-                setTimeout(() => notificationBar.classList.remove('show'), duration);
-            };
+                setTimeout(() => {
+                    notificationBar.classList.remove('show');
+                }, duration);
+            }
 
             const scheduleNotifications = () => {
                 if (notificationInterval) clearInterval(notificationInterval);
                 notificationInterval = setInterval(() => {
-                    const now = new Date(); const hour = now.getHours();
-                    const lastHour = parseInt(localStorage.getItem('lastNotificationHour') || '-1', 10);
-                    if (hour >= 9 && hour <= 20 && hour !== lastHour) {
-                        if (currentIntake < GOAL) {
+                    const now = new Date();
+                    const hour = now.getHours();
+                    const lastNotificationHour = parseInt(localStorage.getItem('lastNotificationHour') || '-1', 10);
+
+                    if (hour >= 9 && hour <= 20 && hour !== lastNotificationHour) {
+                         if(currentIntake < GOAL) {
                             new Notification('¡Recordatorio de Hidratación!', {
                                 body: '💧 ¡Hey! Es hora de tomar agua.',
-                                icon: 'icon-192.png',
+                                icon: document.querySelector('link[sizes="192x192"]').href,
                                 silent: false
                             });
-                            localStorage.setItem('lastNotificationHour', String(hour));
-                        } else { clearInterval(notificationInterval); notificationInterval = null; }
+                            localStorage.setItem('lastNotificationHour', hour);
+                         } else {
+                             clearInterval(notificationInterval);
+                             notificationInterval = null;
+                         }
                     }
                 }, 60 * 1000);
             };
+            
+            const enableNotifications = () => {
+                notificationsEnabled = true;
+                notifyBtn.textContent = 'Desactivar Avisos';
+                localStorage.setItem('notificationsEnabled', 'true');
+                scheduleNotifications();
+                showNotificationBar('¡Notificaciones activadas!');
+            };
 
-            // Toggle notifications with persistence
-            const enabled = localStorage.getItem('notificationsEnabled') === 'true';
-            notifyBtn.textContent = enabled ? 'Desactivar Avisos' : 'Activar Avisos';
+            const disableNotifications = () => {
+                notificationsEnabled = false;
+                notifyBtn.textContent = 'Activar Avisos';
+                localStorage.setItem('notificationsEnabled', 'false');
+                if (notificationInterval) clearInterval(notificationInterval);
+                notificationInterval = null;
+                showNotificationBar('Notificaciones desactivadas.');
+            };
 
             notifyBtn.addEventListener('click', () => {
-                const isEnabled = localStorage.getItem('notificationsEnabled') === 'true';
-                if (!isEnabled) {
-                    if (!('Notification' in window)) { showNotificationBar('Tu navegador no soporta notificaciones.'); return; }
+                if (!notificationsEnabled) {
+                    if (!('Notification' in window)) {
+                        showNotificationBar('Tu navegador no soporta notificaciones.');
+                        return;
+                    }
                     if (Notification.permission === 'granted') {
-                        localStorage.setItem('notificationsEnabled', 'true'); scheduleNotifications(); showNotificationBar('¡Notificaciones activadas!'); notifyBtn.textContent='Desactivar Avisos';
+                        enableNotifications();
                     } else if (Notification.permission !== 'denied') {
-                        Notification.requestPermission().then(p => {
-                            if (p === 'granted') { localStorage.setItem('notificationsEnabled', 'true'); scheduleNotifications(); showNotificationBar('¡Notificaciones activadas!'); notifyBtn.textContent='Desactivar Avisos'; }
+                        Notification.requestPermission().then(permission => {
+                            if (permission === 'granted') enableNotifications();
                             else showNotificationBar('Permiso de notificaciones denegado.');
                         });
-                    } else showNotificationBar('Las notificaciones están bloqueadas.');
+                    } else {
+                         showNotificationBar('Las notificaciones están bloqueadas.');
+                    }
                 } else {
-                    localStorage.setItem('notificationsEnabled', 'false');
-                    if (notificationInterval) clearInterval(notificationInterval);
-                    notificationInterval = null; notifyBtn.textContent='Activar Avisos';
-                    showNotificationBar('Notificaciones desactivadas.');
+                    disableNotifications();
                 }
             });
 
+            // --- Initial Load ---
             loadData();
-            if (enabled && Notification.permission === 'granted') scheduleNotifications();
+            if (localStorage.getItem('notificationsEnabled') === 'true' && Notification.permission === 'granted') {
+                notificationsEnabled = true;
+                notifyBtn.textContent = 'Desactivar Avisos';
+                scheduleNotifications();
+            }
         });
     </script>
 </body>
