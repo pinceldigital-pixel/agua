@@ -1,4 +1,4 @@
-const CACHE = 'aguapp-pro-v1';
+const CACHE = 'aguapp-es-svg-v1';
 const ASSETS = ['./','./index.html','./main.js','./manifest.webmanifest'];
 self.addEventListener('install', e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
@@ -25,8 +25,6 @@ self.addEventListener('fetch', e=>{
     })
   );
 });
-
-// click en la notificación => enfocar/abrir app
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   event.waitUntil(
