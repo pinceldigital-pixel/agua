@@ -1,0 +1,62 @@
+// service-worker.js
+
+const CACHE_NAME = 'water-tracker-cache-v1';
+// Lista de archivos para cachear (opcional, para modo offline)
+const urlsToCache = [
+  '/',
+  '/index.html'
+];
+
+self.addEventListener('install', event => {
+  // Realiza la instalación del SW, como cachear los archivos de la app
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Cache abierto');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+
+self.addEventListener('fetch', event => {
+  // Responde con los archivos cacheados si están disponibles
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request);
+      })
+  );
+});
+
+let notificationInterval;
+let notificationSettings = { start: 9, end: 20 };
+
+// Escucha mensajes desde la app principal
+self.addEventListener('message', (event) => {
+    if (event.data.action === 'stopNotifications') {
+        if (notificationInterval) clearInterval(notificationInterval);
+        notificationInterval = null;
+        console.log('Notificaciones detenidas en SW.');
+    }
+    if (event.data.action === 'scheduleNotifications') {
+        if (notificationInterval) clearInterval(notificationInterval);
+        notificationSettings = event.data.settings;
+        console.log('Notificaciones programadas en SW:', notificationSettings);
+        
+        notificationInterval = setInterval(() => {
+            const now = new Date();
+            const hour = now.getHours();
+            
+            if (hour >= notificationSettings.start && hour < notificationSettings.end) {
+                self.registration.showNotification('Hey! 💧 ¡Es hora de tomar agua!', {
+                    body: 'Beber agua regularmente es clave para tu bienestar.',
+                    icon: 'https://www.gstatic.com/images/branding/product/1x/google_cloud_48dp.png', // URL a un ícono
+                    vibrate: [200, 100, 200]
+                });
+            }
+        }, 2 * 60 * 60 * 1000); // 2 horas
+    }
+});
