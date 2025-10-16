@@ -47,3 +47,52 @@ self.addEventListener('message', (event) => {
         }, 2 * 60 * 60 * 1000); // Cada 2 horas
     }
 });
+
+
+// ===== Injected basic offline shell =====
+
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open('water-tracker-cache-v1');
+    await cache.addAll([
+      './',
+      './index.html',
+      './app.js',
+      './manifest.json',
+      './icons/icon-192.png',
+      './icons/icon-512.png'
+    ]);
+    self.skipWaiting();
+  })());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  event.respondWith((async () => {
+    // Network first for navigation; cache fallback
+    if (req.mode === 'navigate') {
+      try {
+        const fresh = await fetch(req);
+        const cache = await caches.open('water-tracker-cache-v1');
+        cache.put(req, fresh.clone());
+        return fresh;
+      } catch (e) {
+        const cache = await caches.open('water-tracker-cache-v1');
+        const cached = await cache.match('./index.html');
+        if (cached) return cached;
+        throw e;
+      }
+    }
+    // Cache-first for others
+    const cache = await caches.open('water-tracker-cache-v1');
+    const cached = await cache.match(req);
+    if (cached) return cached;
+    const res = await fetch(req);
+    cache.put(req, res.clone());
+    return res;
+  })());
+});

@@ -1,15 +1,12 @@
 
-// ===== PWA bootstrap =====
-let deferredPrompt = null;
-
+// ===== PWA bootstrap (inyectado) =====
 if ('serviceWorker' in navigator) {
-  // Usa la ruta relativa tal como está en index.html
-  navigator.serviceWorker.register('./service-worker.js')
-    .then(reg => console.log('[SW] registrado:', reg.scope))
-    .catch(err => console.error('[SW] error:', err));
+  navigator.serviceWorker.register('/water/service-worker.js')
+    .then(r => console.log('SW registrado en', r.scope))
+    .catch(e => console.error('Fallo al registrar SW:', e));
 }
 
-// Manejo del botón "INSTALAR APP"
+let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
@@ -17,157 +14,291 @@ window.addEventListener('beforeinstallprompt', (e) => {
   if (btn) btn.style.display = 'block';
 });
 
-document.addEventListener('click', async (ev) => {
-  const target = ev.target;
-  if (!(target instanceof HTMLElement)) return;
-  if (target.id === 'install-btn' && deferredPrompt) {
-    deferredPrompt.prompt();
-    try {
-      const choice = await deferredPrompt.userChoice;
-      console.log('Resultado instalación:', choice.outcome);
-    } finally {
-      deferredPrompt = null;
-      target.style.display = 'none';
-    }
-  }
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  try { await deferredPrompt.userChoice; } catch(e){}
+  deferredPrompt = null;
+});
+// ===== fin PWA bootstrap =====
+
+// Registro del Service Worker en /water/
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/water/service-worker.js')
+    .then(() => console.log('SW registrado en /water/ 🧼'))
+    .catch(err => console.log('Fallo al registrar SW:', err));
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'block';
+});
+
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  console.log('Resultado instalación:', choice.outcome);
+  deferredPrompt = null;
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  // --- Selectores del DOM ---
-  const progressBar = document.getElementById('progress-bar');
-  const percentageText = document.getElementById('percentage-text');
-  const currentAmountText = document.getElementById('current-amount-text');
-  const goalText = document.getElementById('goal-text');
-  const undoBtn = document.getElementById('undo-btn');
-  const settingsBtn = document.getElementById('settings-btn');
-  const settingsModal = document.getElementById('settings-modal');
-  const closeSettingsBtn = document.getElementById('close-settings-btn');
-  const saveSettingsBtn = document.getElementById('save-settings-btn');
-  const goalInput = document.getElementById('goal-input');
-  const notificationsToggle = document.getElementById('notifications-toggle');
-  const timeRangeSettings = document.getElementById('time-range-settings');
-  const startTimeInput = document.getElementById('start-time-input');
-  const endTimeInput = document.getElementById('end-time-input');
+    // Registra el Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('Service Worker registrado con éxito', reg))
+            .catch(err => console.error('Error al registrar Service Worker', err));
+    }
 
-  // --- Estado ---
-  let goal = 2000;
-  let currentAmount = 0;
-  let history = []; // pila de sumas para "deshacer"
-  let notificationsEnabled = false;
-  let notificationStartTime = '09:00';
-  let notificationEndTime = '20:00';
+    // --- Selectores del DOM ---
+    const progressBar = document.getElementById('progress-bar');
+    const percentageText = document.getElementById('percentage-text');
+    const currentAmountText = document.getElementById('current-amount-text');
+    const goalText = document.getElementById('goal-text');
+    const undoBtn = document.getElementById('undo-btn');
+    const installBtn = document.getElementById('install-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const goalInput = document.getElementById('goal-input');
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    const timeRangeSettings = document.getElementById('time-range-settings');
+    const startTimeInput = document.getElementById('start-time-input');
+    const endTimeInput = document.getElementById('end-time-input');
+    const canvas = document.getElementById('bubbles-canvas');
+    const ctx = canvas.getContext('2d');
 
-  // --- Utilidades de almacenamiento (por día) ---
-  const todayKey = () => `waterData_${new Date().toISOString().split('T')[0]}`;
+    // --- Variables de Estado ---
+    let goal, currentAmount, history, goalReachedToday, notificationsEnabled, notificationStartTime, notificationEndTime;
+    let deferredPrompt;
+    let bubbles = [];
 
-  function loadData() {
-    // Ajustes persistentes
-    const settings = JSON.parse(localStorage.getItem('waterSettings') || '{}');
-    goal = Number(settings.goal || 2000);
-    notificationsEnabled = Boolean(settings.notificationsEnabled || false);
-    notificationStartTime = settings.notificationStartTime || '09:00';
-    notificationEndTime = settings.notificationEndTime || '20:00';
+    // --- Lógica de la App ---
+    const radius = progressBar.r.baseVal.value;
+    const circumference = 2 * Math.PI * radius;
+    progressBar.style.strokeDasharray = circumference;
 
-    // Datos del día
-    const data = JSON.parse(localStorage.getItem(todayKey()) || '{}');
-    currentAmount = Number(data.currentAmount || 0);
-    history = Array.isArray(data.history) ? data.history : [];
+    const getTodayKey = () => `waterData_${new Date().toISOString().split('T')[0]}`;
 
-    updateSettingsUI();
-    updateUI();
-  }
+    const loadData = () => {
+        const settings = JSON.parse(localStorage.getItem('waterSettings')) || {};
+        goal = settings.goal || 2000;
+        notificationsEnabled = settings.notificationsEnabled || false;
+        notificationStartTime = settings.notificationStartTime || '09:00';
+        notificationEndTime = settings.notificationEndTime || '20:00';
 
-  function saveData() {
-    localStorage.setItem('waterSettings', JSON.stringify({
-      goal, notificationsEnabled, notificationStartTime, notificationEndTime
-    }));
-    localStorage.setItem(todayKey(), JSON.stringify({
-      currentAmount, history
-    }));
-  }
+        const todayKey = getTodayKey();
+        const data = JSON.parse(localStorage.getItem(todayKey)) || {};
+        currentAmount = data.currentAmount || 0;
+        history = data.history || [];
+        goalReachedToday = data.goalReachedToday || false;
+        
+        updateSettingsUI();
+        updateUI();
+    };
 
-  // --- UI ---
-  function updateUI() {
-    // Texto
-    goalText.textContent = `${goal} ML`;
-    currentAmountText.textContent = `${currentAmount} / ${goal} ml`;
+    const saveData = () => {
+        const settings = { goal, notificationsEnabled, notificationStartTime, notificationEndTime };
+        localStorage.setItem('waterSettings', JSON.stringify(settings));
 
-    const pct = Math.max(0, Math.min(100, Math.round((currentAmount / goal) * 100 || 0)));
-    percentageText.textContent = `${pct}%`;
+        const todayKey = getTodayKey();
+        const data = { currentAmount, history, goalReachedToday };
+        localStorage.setItem(todayKey, JSON.stringify(data));
+    };
 
-    // Círculo de progreso
-    const r = Number(progressBar.getAttribute('r') || 45);
-    const circumference = 2 * Math.PI * r;
-    progressBar.style.strokeDasharray = `${circumference}`;
-    const offset = circumference * (1 - pct / 100);
-    progressBar.style.strokeDashoffset = `${offset}`;
-  }
+    const updateSettingsUI = () => {
+        goalInput.value = goal;
+        notificationsToggle.checked = notificationsEnabled;
+        startTimeInput.value = notificationStartTime;
+        endTimeInput.value = notificationEndTime;
+        timeRangeSettings.style.display = notificationsEnabled ? 'block' : 'none';
+    };
 
-  function updateSettingsUI() {
-    goalInput.value = String(goal);
-    notificationsToggle.checked = notificationsEnabled;
-    timeRangeSettings.classList.toggle('hidden', !notificationsEnabled);
-    startTimeInput.value = notificationStartTime;
-    endTimeInput.value = notificationEndTime;
-  }
+    const updateUI = () => {
+        const percentage = Math.min(100, (currentAmount / goal) * 100);
+        const offset = circumference - (percentage / 100) * circumference;
+        
+        progressBar.style.strokeDashoffset = offset;
+        percentageText.textContent = `${Math.round(percentage)}%`;
+        currentAmountText.textContent = `${currentAmount} / ${goal} ml`;
+        goalText.textContent = `${goal} ML`;
 
-  // --- Lógica ---
-  function addWater(amount) {
-    if (!Number.isFinite(amount)) return;
-    currentAmount += amount;
-    history.push(amount);
-    saveData();
-    updateUI();
-    // mini pop en el porcentaje
-    percentageText.classList.add('pop-effect');
-    setTimeout(() => percentageText.classList.remove('pop-effect'), 350);
-  }
+        undoBtn.disabled = history.length === 0;
 
-  function undoLast() {
-    if (history.length === 0) return;
-    const last = history.pop();
-    currentAmount = Math.max(0, currentAmount - last);
-    saveData();
-    updateUI();
-  }
+        if (percentage >= 100 && !goalReachedToday) {
+            triggerGoalAnimation();
+            goalReachedToday = true;
+            saveData();
+        }
+    };
 
-  function openSettings() {
-    settingsModal.classList.remove('hidden');
-  }
-  function closeSettings() {
-    settingsModal.classList.add('hidden');
-  }
+    const addWater = (amount) => {
+        currentAmount += amount;
+        history.push(amount);
 
-  function saveSettings() {
-    const newGoal = Number(goalInput.value || 0);
-    goal = newGoal > 0 ? newGoal : goal;
-    notificationsEnabled = Boolean(notificationsToggle.checked);
-    notificationStartTime = startTimeInput.value || '09:00';
-    notificationEndTime = endTimeInput.value || '20:00';
-    saveData();
-    updateSettingsUI();
-    closeSettings();
-  }
+        percentageText.classList.add('pop-effect');
+        percentageText.addEventListener('animationend', () => {
+            percentageText.classList.remove('pop-effect');
+        }, { once: true });
+        
+        updateUI();
+        saveData();
+    };
 
-  // --- Eventos ---
-  document.querySelectorAll('.add-water-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const amt = Number(btn.dataset.amount);
-      addWater(amt);
+    const undoLast = () => {
+        if (history.length > 0) {
+            const lastAmount = history.pop();
+            currentAmount -= lastAmount;
+            if (currentAmount < goal) goalReachedToday = false;
+            
+            percentageText.classList.add('pop-effect');
+            percentageText.addEventListener('animationend', () => {
+                percentageText.classList.remove('pop-effect');
+            }, { once: true });
+
+            updateUI();
+            saveData();
+        }
+    };
+
+    const openSettings = () => {
+        updateSettingsUI();
+        settingsModal.classList.remove('hidden');
+    };
+    const closeSettings = () => settingsModal.classList.add('hidden');
+    
+    const saveSettings = async () => {
+        goal = parseInt(goalInput.value) || 2000;
+        notificationsEnabled = notificationsToggle.checked;
+        notificationStartTime = startTimeInput.value;
+        notificationEndTime = endTimeInput.value;
+        
+        saveData();
+        updateUI();
+        closeSettings();
+
+        if (!('Notification' in window) || !navigator.serviceWorker || !navigator.serviceWorker.ready) return;
+
+        navigator.serviceWorker.ready.then(reg => {
+            if (notificationsEnabled) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        reg.active.postMessage({ 
+                            action: 'scheduleNotifications',
+                            settings: {
+                                start: parseInt(notificationStartTime.split(':')[0]),
+                                end: parseInt(notificationEndTime.split(':')[0])
+                            }
+                        });
+                        console.log("Notificaciones programadas.");
+                    }
+                });
+            } else {
+                reg.active.postMessage({ action: 'stopNotifications' });
+                console.log("Notificaciones detenidas.");
+            }
+        });
+    };
+
+    // --- Animación de Burbujas ---
+    const resizeCanvas = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    };
+    const triggerGoalAnimation = () => {
+        canvas.style.display = 'block';
+        resizeCanvas();
+        bubbles = [];
+        for (let i = 0; i < 50; i++) {
+            bubbles.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height + Math.random() * 100,
+                radius: Math.random() * 5 + 2,
+                speed: Math.random() * 3 + 1,
+                opacity: Math.random() * 0.5 + 0.5
+            });
+        }
+        animateBubbles();
+        setTimeout(() => {
+            canvas.style.display = 'none';
+        }, 5000);
+    };
+    const animateBubbles = () => {
+        if (!canvas) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        bubbles.forEach(bubble => {
+            bubble.y -= bubble.speed;
+            ctx.beginPath();
+            ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${bubble.opacity})`;
+            ctx.fill();
+        });
+
+        bubbles = bubbles.filter(b => b.y > -10);
+        if (bubbles.length > 0) {
+            requestAnimationFrame(animateBubbles);
+        }
+    };
+    
+    // --- Lógica de Instalación ---
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block';
+        console.log('`beforeinstallprompt` fue disparado.');
     });
-  });
-  undoBtn.addEventListener('click', undoLast);
-  settingsBtn.addEventListener('click', openSettings);
-  closeSettingsBtn.addEventListener('click', closeSettings);
-  settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) closeSettings();
-  });
-  saveSettingsBtn.addEventListener('click', saveSettings);
 
-  notificationsToggle.addEventListener('change', () => {
-    timeRangeSettings.classList.toggle('hidden', !notificationsToggle.checked);
-  });
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                console.log('El usuario aceptó instalar la PWA');
+            }
+            deferredPrompt = null;
+            installBtn.style.display = 'none';
+        }
+    });
 
-  // --- Inicialización ---
-  loadData();
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA fue instalada');
+        installBtn.style.display = 'none';
+        deferredPrompt = null;
+    });
+
+    // --- Event Listeners ---
+    document.querySelectorAll('.add-water-btn').forEach(b => b.addEventListener('click', () => addWater(parseInt(b.dataset.amount))));
+    undoBtn.addEventListener('click', undoLast);
+    settingsBtn.addEventListener('click', openSettings);
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
+    saveSettingsBtn.addEventListener('click', saveSettings);
+    notificationsToggle.addEventListener('change', () => {
+        timeRangeSettings.style.display = notificationsToggle.checked ? 'block' : 'none';
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Inicialización ---
+    loadData();
+});
+
+
+// ===== Extra: delegado de clicks para máxima compatibilidad ===== /*[delegated-click]*/
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('.add-water-btn');
+  if (btn) {
+    const amt = Number(btn.dataset.amount);
+    if (Number.isFinite(amt)) {
+      console.log('[UI] add-water-btn click:', amt);
+      e.preventDefault();
+      e.stopPropagation();
+      try { addWater(amt); } catch (err) { console.error('addWater error:', err); }
+    } else {
+      console.warn('Botón sin data-amount válido:', btn);
+    }
+  }
 });
