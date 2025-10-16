@@ -1,3 +1,26 @@
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('SW registrado 🧼'))
+    .catch(err => console.log('Fallo al registrar SW:', err));
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'block';
+});
+
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  console.log('Resultado instalación:', choice.outcome);
+  deferredPrompt = null;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     // Registra el Service Worker
     if ('serviceWorker' in navigator) {

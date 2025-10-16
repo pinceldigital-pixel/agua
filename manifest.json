@@ -4,7 +4,7 @@
     "description": "Una simple app para seguir tu ingesta de agua.",
     "id": "/",
     "scope": "/",
-    "start_url": ".",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#3b82f6",
     "theme_color": "#6366f1",
