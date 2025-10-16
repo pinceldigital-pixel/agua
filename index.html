@@ -21,14 +21,14 @@
     .icon{width:22px;height:22px;vertical-align:-4px}
     .icon-btn{background:transparent;border:0;color:#fff;font-size:0;cursor:pointer;opacity:.9}
     main{max-width:520px;margin:0 auto;padding:10px 16px 110px}
-    .card{background:rgba(255,255,255,0.06);border:1px solid var(--ring);border-radius:20px;backdrop-filter:blur(8px); /* sin sombra */ }
+    .card{background:transparent;border:0;border-radius:0;} /* sin recuadro, fondo degrade limpio */
     .center{display:grid;place-items:center;position:relative;padding:16px}
     .donut{width:240px;height:240px;margin:8px 0}
     .track{fill:none;stroke:rgba(255,255,255,.25);stroke-width:14}
     .arc{fill:none;stroke:#fff;stroke-width:14;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;
          stroke-dasharray:565.48;stroke-dashoffset:565.48;transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1)}
     .centered{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;text-align:center;pointer-events:none}
-    .pct{font-size:48px;font-weight:900;text-shadow:0 0 8px rgba(255,255,255,.5);line-height:1}
+    .pct{font-size:48px;font-weight:900;text-shadow:none;line-height:1}
     .sub{margin-top:2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#e2e8f0}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;width:100%}
     .metric{padding:10px;border-radius:12px;border:1px dashed var(--ring);text-align:center}
@@ -37,7 +37,7 @@
     select, .btn{appearance:none;font-weight:700;border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.25);background:#fff;color:#0b3ea6}
     .btn{cursor:pointer}
     .btn:active{transform:translateY(1px)}
-    .tabbar{position:fixed;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(0,0,0,.15);backdrop-filter:blur(6px);display:flex;gap:10px;justify-content:center}
+    .tabbar{display:none} /* eliminada barra inferior */
     .tip{color:#e6f0ff;font-size:12px;opacity:.85;margin-top:10px;text-align:center}
 
     dialog{border:1px solid var(--ring);border-radius:16px;background:#0f47bd;color:#fff;max-width:420px;width:90%;padding:18px}
@@ -50,7 +50,6 @@
   <!-- Defs de íconos SVG -->
   <svg width="0" height="0" style="position:absolute">
     <symbol id="ic-gear" viewBox="0 0 24 24"><path fill="currentColor" d="M12 15.5a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7m8.94-2.86l-1.23-.71c.07-.47.11-.95.11-1.43s-.04-.96-.11-1.43l1.23-.71a.5.5 0 0 0 .19-.68l-1.82-3.16a.5.5 0 0 0-.64-.21l-1.22.5A7.97 7.97 0 0 0 15.5 2.6l-.19-1.3A.5.5 0 0 0 14.82 1h-3.64a.5.5 0 0 0-.49.41l-.19 1.3A7.97 7.97 0 0 0 7.55 4.0l-1.22-.5a.5.5 0 0 0-.64.21L3.87 6.87a.5.5 0 0 0 .19.68l1.23.71c-.07.47-.11.95-.11 1.43s.04.96.11 1.43l-1.23.71a.5.5 0 0 0-.19.68l1.82 3.16c.13.23.41.32.64.21l1.22-.5c.66.6 1.4 1.1 2.22 1.5l.19 1.3c.05.24.25.41.49.41h3.64c.24 0 .44-.17.49-.41l.19-1.3c.82-.4 1.56-.9 2.22-1.5l1.22.5c.23.1.51.02.64-.21l1.82-3.16a.5.5 0 0 0-.19-.68z"/></symbol>
-    <symbol id="ic-home" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3z"/></symbol>
     <symbol id="ic-plus" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6z"/></symbol>
     <symbol id="ic-drop" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.69C12 2.69 6 9 6 13a6 6 0 0 0 12 0c0-4-6-10.31-6-10.31z"/></symbol>
   </svg>
@@ -102,11 +101,6 @@
     </div>
   </main>
 
-  <div class="tabbar">
-    <span><svg class="icon"><use href="#ic-home"/></svg> Inicio</span>
-  </div>
-
-  <!-- Modal de Configuración -->
   <dialog id="settings">
     <h3 style="margin:0 0 8px">Configuración</h3>
     <label>Objetivo diario (ml)
