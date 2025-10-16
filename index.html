@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Water Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6366f1">
+
+    <!-- iOS Compatibility -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agua">
+    
     <style>
         :root {
             --circle-bg: rgba(255, 255, 255, 0.3);
             --circle-progress: #38bdf8;
-            --bubble-color: rgba(255, 255, 255, 0.7);
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -27,8 +34,6 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 9999; display: none;
         }
-        #settings-modal { transition: opacity 0.3s ease; }
-        .toggle-checkbox:checked + .toggle-label .toggle-ball { transform: translateX(100%); }
         @keyframes pop {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.15); }
@@ -39,6 +44,7 @@
 <body class="bg-gradient-to-b from-sky-500 to-indigo-600 text-white overflow-hidden">
 
     <div id="app-container" class="relative flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        
         <button id="settings-btn" class="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition">
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
@@ -51,8 +57,7 @@
         <div class="relative w-64 h-64 mb-4 flex items-center justify-center">
             <svg class="progress-circle w-full h-full" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="45" stroke="var(--circle-bg)" stroke-width="8" fill="transparent" />
-                <circle id="progress-bar" class="progress-circle-bar" cx="50" cy="50" r="45" stroke="var(--circle-progress)" stroke-width="8" fill="transparent"
-                        stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" />
+                <circle id="progress-bar" class="progress-circle-bar" cx="50" cy="50" r="45" stroke="var(--circle-progress)" stroke-width="8" fill="transparent" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" />
             </svg>
             <div class="absolute flex flex-col items-center">
                 <span id="percentage-text" class="text-6xl font-bold">0%</span>
@@ -61,29 +66,22 @@
         </div>
         
         <div class="mb-6">
-             <button id="undo-btn" class="bg-white/10 border border-white/30 rounded-full px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
-                DESHACER
-            </button>
+             <button id="undo-btn" class="bg-white/10 border border-white/30 rounded-full px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-white/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">DESHACER</button>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-6 w-full max-w-sm">
-            <button data-amount="250" class="add-water-btn bg-white/20 backdrop-blur-sm rounded-xl py-4 font-semibold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-3.3 0-6-2.7-6-6 0-2 1-3.8 2.5-5.1L12 4l3.5 6.9c1.5 1.3 2.5 3.1 2.5 5.1 0 3.3-2.7 6-6 6z"/><path d="M12 4V2"/><path d="M18 6l1.4-1.4"/><path d="M6 6 4.6 4.6"/></svg>
-                250 ml
-            </button>
-            <button data-amount="500" class="add-water-btn bg-white/20 backdrop-blur-sm rounded-xl py-4 font-semibold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-3.3 0-6-2.7-6-6 0-2 1-3.8 2.5-5.1L12 4l3.5 6.9c1.5 1.3 2.5 3.1 2.5 5.1 0 3.3-2.7 6-6 6z"/><path d="M12 4V2"/><path d="M18 6l1.4-1.4"/><path d="M6 6 4.6 4.6"/></svg>
-                500 ml
-            </button>
+            <button data-amount="250" class="add-water-btn bg-white/20 backdrop-blur-sm rounded-xl py-4 font-semibold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-3.3 0-6-2.7-6-6 0-2 1-3.8 2.5-5.1L12 4l3.5 6.9c1.5 1.3 2.5 3.1 2.5 5.1 0 3.3-2.7 6-6 6z"/><path d="M12 4V2"/><path d="M18 6l1.4-1.4"/><path d="M6 6 4.6 4.6"/></svg> 250 ml</button>
+            <button data-amount="500" class="add-water-btn bg-white/20 backdrop-blur-sm rounded-xl py-4 font-semibold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-3.3 0-6-2.7-6-6 0-2 1-3.8 2.5-5.1L12 4l3.5 6.9c1.5 1.3 2.5 3.1 2.5 5.1 0 3.3-2.7 6-6 6z"/><path d="M12 4V2"/><path d="M18 6l1.4-1.4"/><path d="M6 6 4.6 4.6"/></svg> 500 ml</button>
         </div>
 
         <div class="w-full max-w-sm flex flex-col items-center gap-4">
             <button id="install-btn" style="display: none;" class="w-full bg-indigo-500 text-white font-bold py-4 rounded-xl active:scale-95 transition-transform shadow-lg">INSTALAR APP</button>
         </div>
+
     </div>
 
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white text-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+         <div class="bg-white text-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-sky-600">Configuración</h2>
                 <button id="close-settings-btn" class="text-gray-400 hover:text-gray-700">
@@ -98,7 +96,7 @@
 
             <div class="flex items-center justify-between mb-4 py-2">
                  <label for="notifications-toggle" class="text-sm font-medium text-gray-700">Activar notificaciones</label>
-                 <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                 <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                     <input type="checkbox" name="toggle" id="notifications-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
                     <label for="notifications-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer">
                         <span class="toggle-ball absolute inset-y-0 left-0 w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-200 ease-in-out"></span>
@@ -121,216 +119,7 @@
 
     <canvas id="bubbles-canvas"></canvas>
     
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const setupPWA = () => {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(r => console.log('SW registrado con éxito'))
-                    .catch(e => console.error('Error al registrar SW:', e));
-            }
-        };
-
-        const progressBar = document.getElementById('progress-bar');
-        const percentageText = document.getElementById('percentage-text');
-        const currentAmountText = document.getElementById('current-amount-text');
-        const goalText = document.getElementById('goal-text');
-        const undoBtn = document.getElementById('undo-btn');
-        const installBtn = document.getElementById('install-btn');
-        
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const closeSettingsBtn = document.getElementById('close-settings-btn');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
-        const goalInput = document.getElementById('goal-input');
-        const notificationsToggle = document.getElementById('notifications-toggle');
-        const timeRangeSettings = document.getElementById('time-range-settings');
-        const startTimeInput = document.getElementById('start-time-input');
-        const endTimeInput = document.getElementById('end-time-input');
-        
-        const radius = progressBar.r.baseVal.value;
-        const circumference = 2 * Math.PI * radius;
-        progressBar.style.strokeDasharray = circumference;
-
-        let goal, currentAmount, history, goalReachedToday, notificationsEnabled, notificationStartTime, notificationEndTime;
-        
-        const getTodayKey = () => new Date().toISOString().split('T')[0];
-
-        const loadData = () => {
-            const settings = JSON.parse(localStorage.getItem('waterSettings')) || {};
-            goal = settings.goal || 2000;
-            notificationsEnabled = settings.notificationsEnabled || false;
-            notificationStartTime = settings.notificationStartTime || '09:00';
-            notificationEndTime = settings.notificationEndTime || '20:00';
-
-            const todayKey = `waterData_${getTodayKey()}`;
-            const data = JSON.parse(localStorage.getItem(todayKey)) || {};
-            currentAmount = data.currentAmount || 0;
-            history = data.history || [];
-            goalReachedToday = data.goalReachedToday || false;
-            
-            updateSettingsUI();
-            updateUI();
-        };
-
-        const saveData = () => {
-            const settings = { goal, notificationsEnabled, notificationStartTime, notificationEndTime };
-            localStorage.setItem('waterSettings', JSON.stringify(settings));
-
-            const todayKey = `waterData_${getTodayKey()}`;
-            const data = { currentAmount, history, goalReachedToday };
-            localStorage.setItem(todayKey, JSON.stringify(data));
-        };
-        
-        const updateSettingsUI = () => {
-            goalInput.value = goal;
-            notificationsToggle.checked = notificationsEnabled;
-            startTimeInput.value = notificationStartTime;
-            endTimeInput.value = notificationEndTime;
-            timeRangeSettings.style.display = notificationsEnabled ? 'block' : 'none';
-        }
-
-        const updateUI = () => {
-            const percentage = Math.min(100, (currentAmount / goal) * 100);
-            const offset = circumference - (percentage / 100) * circumference;
-            
-            progressBar.style.strokeDashoffset = offset;
-            percentageText.textContent = `${Math.round(percentage)}%`;
-            currentAmountText.textContent = `${currentAmount} / ${goal} ml`;
-            goalText.textContent = `${goal} ML`;
-
-            undoBtn.disabled = history.length === 0;
-
-            if (percentage >= 100 && !goalReachedToday) {
-                triggerGoalAnimation();
-                goalReachedToday = true;
-                saveData();
-            }
-        };
-
-        const triggerActionAnimation = () => {
-             percentageText.classList.remove('pop-effect');
-             void percentageText.offsetWidth; // Truco para reiniciar la animación
-             percentageText.classList.add('pop-effect');
-        }
-
-        const addWater = (amount) => {
-            currentAmount += amount;
-            history.push(amount);
-            triggerActionAnimation();
-            updateUI();
-            saveData();
-        };
-
-        const undoLast = () => {
-            if (history.length > 0) {
-                currentAmount -= history.pop();
-                if (currentAmount < goal) goalReachedToday = false;
-                triggerActionAnimation();
-                updateUI();
-                saveData();
-            }
-        };
-
-        const openSettings = () => settingsModal.classList.remove('hidden');
-        const closeSettings = () => settingsModal.classList.add('hidden');
-        
-        const saveSettings = async () => {
-            goal = parseInt(goalInput.value) || 2000;
-            notificationsEnabled = notificationsToggle.checked;
-            notificationStartTime = startTimeInput.value;
-            notificationEndTime = endTimeInput.value;
-            
-            saveData();
-            updateUI();
-            closeSettings();
-
-            if (!('Notification' in window) || !navigator.serviceWorker?.ready) return;
-
-            const reg = await navigator.serviceWorker.ready;
-            if (notificationsEnabled) {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    reg.active.postMessage({ 
-                        action: 'scheduleNotifications',
-                        settings: {
-                            start: parseInt(notificationStartTime.split(':')[0]),
-                            end: parseInt(notificationEndTime.split(':')[0])
-                        }
-                    });
-                }
-            } else {
-                reg.active.postMessage({ action: 'stopNotifications' });
-            }
-        };
-
-        document.querySelectorAll('.add-water-btn').forEach(b => b.addEventListener('click', () => addWater(parseInt(b.dataset.amount))));
-        undoBtn.addEventListener('click', undoLast);
-        settingsBtn.addEventListener('click', openSettings);
-        closeSettingsBtn.addEventListener('click', closeSettings);
-        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettings(); });
-        saveSettingsBtn.addEventListener('click', saveSettings);
-        notificationsToggle.addEventListener('change', () => {
-            timeRangeSettings.style.display = notificationsToggle.checked ? 'block' : 'none';
-        });
-
-        const canvas = document.getElementById('bubbles-canvas');
-        const ctx = canvas.getContext('2d');
-        let bubbles = [];
-
-        const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        };
-
-        const triggerGoalAnimation = () => {
-            canvas.style.display = 'block';
-            resizeCanvas();
-            bubbles = [];
-            for (let i = 0; i < 50; i++) {
-                bubbles.push({
-                    x: Math.random() * canvas.width,
-                    y: canvas.height + Math.random() * 100,
-                    radius: Math.random() * 5 + 2,
-                    speed: Math.random() * 3 + 1,
-                    opacity: Math.random() * 0.5 + 0.5
-                });
-            }
-            animateBubbles();
-            setTimeout(() => { canvas.style.display = 'none'; }, 5000);
-        };
-        
-        const animateBubbles = () => {
-            if (!canvas) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            bubbles.forEach(b => { b.y -= b.speed; ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fillStyle = `rgba(255, 255, 255, ${b.opacity})`; ctx.fill(); });
-            bubbles = bubbles.filter(b => b.y > -10);
-            if (bubbles.length > 0) requestAnimationFrame(animateBubbles);
-        };
-        
-        window.addEventListener('resize', resizeCanvas);
-        
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'block';
-        });
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('Usuario aceptó la instalación');
-                }
-                deferredPrompt = null;
-                installBtn.style.display = 'none';
-            }
-        });
-
-        setupPWA();
-        loadData();
-    });
-    </script>
+    <!-- Enlace al archivo JavaScript principal -->
+    <script src="app.js"></script>
 </body>
 </html>
