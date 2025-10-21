@@ -1,109 +1,199 @@
-const CACHE = 'aguapp-es-svg-v6'; // <-- CAMBIO 1
-const ASSETS = [
-    './',
-    './index.html',
-    './main.js?v=6', // <-- CAMBIO 2
-    './manifest.webmanifest',
-    './icons/icon-192.png',
-    './icons/icon-512.png'
-];
+// AguApp - lógica de UI
+(() => {
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-self.addEventListener('install', e => {
-    e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
-    self.skipWaiting();
-});
+  // --- Estado ---
+  let state = {
+    totalMl: parseInt(localStorage.getItem("totalMl") || "0", 10),
+    goalMl: parseInt(localStorage.getItem("goalMl") || "2000", 10),
+    selected: parseInt(localStorage.getItem("selected") || "250", 10),
+    history: JSON.parse(localStorage.getItem("history") || "[]"),
+    lastNotifyAt: parseInt(localStorage.getItem("lastNotifyAt") || "0", 10),
+    reminders: JSON.parse(localStorage.getItem("reminders") || JSON.stringify({
+      enabled: true,
+      intervalMin: 90,
+      start: "09:00",
+      end: "20:00"
+    }))
+  };
 
-self.addEventListener('activate', e => {
-    e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
-    self.clients.claim();
-});
+  // --- Elementos ---
+  const el = {
+    water: $("#water"),
+    pct: $("#pct"),
+    nowMl: $("#nowMl"),
+    goalMl: $("#goalMl"),
+    add: $("#add"),
+    undo: $("#undo"),
+    chipsWrap: $("#amount"),
+    openSettings: $("#openSettings"),
+    overlay: $("#overlay"),
+    panel: $("#settings"),
+    goalInput: $("#goalInput"),
+    intervalInput: $("#intervalInput"),
+    startInput: $("#startInput"),
+    endInput: $("#endInput"),
+    saveBtn: $("#save"),
+    closeBtn: $("#close"),
+    testNotif: $("#testNotif"),
+    permNote: $("#permNote")
+  };
 
-self.addEventListener('fetch', e => {
-    if (e.request.method !== 'GET') return;
-    e.respondWith(
-        caches.match(e.request).then(c => {
-            return c || fetch(e.request).then(r => {
-                const u = new URL(e.request.url);
-                if (r.ok && u.origin === location.origin) {
-                    const cl = r.clone();
-                    caches.open(CACHE).then(cache => cache.put(e.request, cl));
-                }
-                return r;
-            }).catch(() => c);
-        })
-    );
-});
+  // --- Util ---
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-// --- LÓGICA DE NOTIFICACIONES (Sin cambios) ---
+  function render() {
+    el.nowMl.textContent = state.totalMl;
+    el.goalMl.textContent = state.goalMl;
 
-let swState = {};
-let remindersTmr = null;
+    const pct = clamp(Math.round((state.totalMl / state.goalMl) * 100), 0, 100);
+    el.pct.textContent = `${pct}%`;
 
-self.addEventListener('message', event => {
-    if (event.data && event.data.type === 'SET_STATE') {
-        swState = event.data.state;
-        scheduleReminders();
-    }
-});
+    // translateY(100%) = vacío, 0% = lleno
+    el.water.style.transform = `translateY(${100 - pct}%)`;
 
-function parseTime(h) {
-    if (!h) return new Date();
-    const [hh, mm] = h.split(':').map(Number);
-    const d = new Date();
-    d.setHours(hh, mm, 0, 0);
-    return d;
-}
+    el.undo.disabled = state.history.length === 0;
 
-function minutesSince(ts) {
-    return (Date.now() - ts) / 60000;
-}
-
-function within(now, start, end) {
-    const s = new Date(now);
-    s.setHours(start.getHours(), start.getMinutes(), 0, 0);
-    const e = new Date(now);
-    e.setHours(end.getHours(), end.getMinutes(), 0, 0);
-    return now >= s && now <= e;
-}
-
-function scheduleReminders() {
-    if (remindersTmr) clearInterval(remindersTmr);
-    remindersTmr = setInterval(checkReminder, 60000);
-    checkReminder();
-}
-
-function checkReminder() {
-    if (!swState.reminders || !swState.hasOwnProperty('lastNotifyAt')) {
-        return;
-    }
-
-    const now = new Date();
-    const s = parseTime(swState.reminders.start);
-    const e = parseTime(swState.reminders.end);
-
-    if (!within(now, s, e)) {
-        return;
-    }
-
-    if (minutesSince(swState.reminders.intervalMin) >= swState.reminders.intervalMin) {
-        notify('¡Hey! 💧 Es hora de tomar agua');
-    }
-}
-
-async function notify(body) {
-    const now = Date.now();
-    swState.lastNotifyAt = now;
-
-    await self.registration.showNotification('AguApp', {
-        body,
-        icon: 'icons/icon-192.png',
-        badge: 'icons/icon-192.png',
-        tag: 'agua-min',
-        renotify: true
+    // chips active
+    $$("#amount button").forEach(b => {
+      b.classList.toggle("active", parseInt(b.value, 10) === state.selected);
     });
+  }
 
-    const clients = await self.clients.matchAll({ type: 'window' });
-    clients.forEach(client => {
-        client.postMessage({ type: 'UPDATE_LAST_NOTIFY', timestamp: now });
-    });
-}
+  function persist() {
+    localStorage.setItem("totalMl", String(state.totalMl));
+    localStorage.setItem("goalMl", String(state.goalMl));
+    localStorage.setItem("selected", String(state.selected));
+    localStorage.setItem("history", JSON.stringify(state.history));
+    localStorage.setItem("lastNotifyAt", String(state.lastNotifyAt || 0));
+    localStorage.setItem("reminders", JSON.stringify(state.reminders));
+    // avisar al SW
+    swPostState();
+  }
+
+  // --- Interacciones ---
+  el.chipsWrap.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    state.selected = parseInt(btn.value, 10);
+    persist();
+    render();
+  });
+
+  // Presión prolongada en "Agregar" para auto-repetir
+  let holdTmr = null, repeatTmr = null;
+  function startHold() {
+    clearTimeout(holdTmr); clearInterval(repeatTmr);
+    holdTmr = setTimeout(() => {
+      repeatTmr = setInterval(() => addSelected(), 250);
+    }, 350);
+  }
+  function endHold() {
+    clearTimeout(holdTmr); clearInterval(repeatTmr);
+  }
+
+  function addSelected() {
+    state.history.push(state.totalMl);
+    state.totalMl += state.selected;
+    const nowEl = el.nowMl;
+    nowEl.classList.add("pop");
+    setTimeout(() => nowEl.classList.remove("pop"), 300);
+    persist();
+    render();
+  }
+
+  el.add.addEventListener("click", () => {
+    addSelected();
+  });
+  el.add.addEventListener("mousedown", startHold);
+  el.add.addEventListener("touchstart", startHold, { passive: true });
+  el.add.addEventListener("mouseup", endHold);
+  el.add.addEventListener("mouseleave", endHold);
+  el.add.addEventListener("touchend", endHold);
+
+  el.undo.addEventListener("click", () => {
+    if (!state.history.length) return;
+    state.totalMl = state.history.pop();
+    persist();
+    render();
+  });
+
+  // --- Panel de ajustes ---
+  function openPanel() {
+    el.overlay.classList.add("open");
+    el.panel.classList.add("open");
+    // cargar valores actuales
+    el.goalInput.value = state.goalMl;
+    el.intervalInput.value = state.reminders.intervalMin;
+    el.startInput.value = state.reminders.start;
+    el.endInput.value = state.reminders.end;
+  }
+  function closePanel() {
+    el.overlay.classList.remove("open");
+    el.panel.classList.remove("open");
+  }
+
+  el.openSettings.addEventListener("click", openPanel);
+  el.closeBtn.addEventListener("click", closePanel);
+  el.overlay.addEventListener("click", closePanel);
+
+  el.saveBtn.addEventListener("click", () => {
+    state.goalMl = clamp(parseInt(el.goalInput.value || "2000", 10), 200, 100000);
+    state.reminders.intervalMin = clamp(parseInt(el.intervalInput.value || "90", 10), 5, 1440);
+    state.reminders.start = el.startInput.value || "09:00";
+    state.reminders.end = el.endInput.value || "20:00";
+    persist();
+    render();
+    closePanel();
+  });
+
+  // --- Notificaciones ---
+  async function ensurePermission() {
+    try {
+      const p = await Notification.requestPermission();
+      return p === "granted";
+    } catch {
+      return false;
+    }
+  }
+
+  el.testNotif.addEventListener("click", async () => {
+    const ok = await ensurePermission();
+    if (!ok) {
+      el.permNote.textContent = "Habilitá las notificaciones para recibir recordatorios 💧";
+      return;
+    }
+    state.lastNotifyAt = Date.now();
+    persist();
+    navigator.serviceWorker?.controller?.postMessage({ type: "TRIGGER_TEST" });
+  });
+
+  // --- Service Worker ---
+  let swReg = null;
+  function swPostState() {
+    if (!navigator.serviceWorker?.controller) return;
+    navigator.serviceWorker.controller.postMessage({ type: "SET_STATE", state });
+  }
+
+  async function registerSW() {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      swReg = await navigator.serviceWorker.register("sw.js");
+      navigator.serviceWorker.addEventListener("message", (evt) => {
+        if (evt.data?.type === "UPDATE_LAST_NOTIFY") {
+          state.lastNotifyAt = evt.data.timestamp;
+          persist();
+        }
+      });
+      // enviar estado inicial
+      swPostState();
+    } catch (err) {
+      console.error("SW error:", err);
+    }
+  }
+
+  // Init
+  render();
+  registerSW();
+})();
